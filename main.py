@@ -33,4 +33,4 @@ def emotions():
     #returning the data after analysis
     return result
 
-api.run(host = "localhost" , debug=True, threaded=True)
+api.run(host = "0.0.0.0" , debug=False, threaded=True , port=5001)
