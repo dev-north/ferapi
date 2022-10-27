@@ -1,36 +1,47 @@
+from distutils.log import info
 from deepface import DeepFace
-from flask import Flask,request
+from flask  import Flask,request
+from flask_restful import Api , Resource
 import os ,cv2
 
-api = Flask(__name__)
+request_served = 0
+app = Flask(__name__)
+api = Api(app)
 UPLOAD_PATH = "/uploads"
-api.config['UPLOAD_PATH'] = os.path.join(api.instance_path,"uploads")
-os.makedirs(api.config["UPLOAD_PATH"], exist_ok=True)
+app.config['UPLOAD_PATH'] = os.path.join(app.instance_path,"uploads")
+os.makedirs(app.config["UPLOAD_PATH"], exist_ok=True)
 
-
+class help(Resource):
 #todo : add more information about the api here on this route
-@api.route("/")
-def info():
-    info = "Test"
-    return info
+    def get(self):
+        info = "Test"
+        return info
 
+
+class status(Resource):
+    def get(self):
+        try:
+            return {'data' : f"Running : Served {request_served} since last downtime"}
+        except:
+            return {'data' :  "API offline"}
 #endpoint for facial emotion recognition
-@api.route("/emotions" , methods=["POST"])
-def emotions():
+class emotions(Resource):
+    def post(self):
     #getting image from the request sent by the client
-    image =  request.files['image']  
+        image =  request.files['image']  
 
     #saving the image locally on the server 
-    image.save(os.path.join(api.config['UPLOAD_PATH'] , image.filename))
+        image.save(os.path.join(app.config['UPLOAD_PATH'] , image.filename))
 
     #performing analysis on emotions
-    img = cv2.imread(f"{api.config['UPLOAD_PATH']}"+f'/{image.filename}')
-    result =  DeepFace.analyze(img ,actions=["emotion"])
+        img = cv2.imread(f"{app.config['UPLOAD_PATH']}"+f'/{image.filename}')
+        result =  DeepFace.analyze(img ,actions=["emotion"])
     
     #deleting the image because there is no need to store the image on the server
-    os.remove(f"{api.config['UPLOAD_PATH']}"+f'/{image.filename}')
+        os.remove(f"{app.config['UPLOAD_PATH']}"+f'/{image.filename}')
 
     #returning the data after analysis
-    return result
-
-api.run(host = "0.0.0.0" , debug=False, threaded=True , port=5001)
+        return result
+api.add_resource(help , "/")
+api.add_resource(status, "/status")
+api.add_resource(emotions, "/analyze")
